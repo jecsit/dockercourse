@@ -1,0 +1,56 @@
+apiVersion: apps/v1
+kind: Deployment
+
+metadata:
+   name: nwdb-deploy
+   labels:
+      app: nwdb
+
+spec:
+   replicas: 1
+   selector:
+      matchLabels:
+         app: nwdb
+   minReadySeconds: 30
+   template:
+      metadata:
+         name: nwdb-pod
+         labels:
+            app: nwdb
+      spec:
+         volumes:
+            - name: dbvol
+              persistentVolumeClaim:
+                 claimName: mydb-pvc
+         initContainers:
+           - name: scrubc
+             image: busybox
+             command: ["/bin/sh", "-c", "test -e /scrub && rm -rf /scrub/..?* /scrub/.[!.]* /scrub/*  && test -z \"$(ls -A /scrub)\" || exit 1"]
+             volumeMounts:
+               - mountPath: /scrub
+                 name: dbvol
+         containers:
+         - name: nwdb
+           image: stackupiss/northwind-db:v1
+           imagePullPolicy: IfNotPresent
+           ports:
+           - containerPort: 3306
+           volumeMounts:
+             - mountPath: /var/lib/mysql
+               name: dbvol
+
+---
+
+apiVersion: v1
+kind: Service
+
+metadata:
+   name: nwdb-svc
+
+spec:
+   selector:
+      app: nwdb
+   type: ClusterIP
+   ports:
+   - port: 3306
+     targetPort: 3306

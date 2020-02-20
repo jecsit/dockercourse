@@ -1,0 +1,27 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: mydb-deployment
+  labels:
+    name: mydb
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      name: mydb-pod
+  template:
+    metadata:
+      labels:
+        name: mydb-pod
+    spec:
+      containers:
+      - name: mydb
+        image: stackupiss/northwind-db:v1
+        imagePullPolicy: IfNotPresent
+        env: 
+        - name: "MYSQL_ROOT_PASSWORD"
+          value: "changeit"
+        - name: "MYSQL_DATABASE"
+          value: "northwind"
+        ports:
+        - containerPort: 3306

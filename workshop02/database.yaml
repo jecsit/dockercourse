@@ -1,0 +1,50 @@
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: database-deploy
+  namespace: myns
+  labels:
+    name: database
+    version: "v1"
+  
+spec:
+  replicas: 1
+  strategy:
+    type: RollingUpdate
+    rollingUpdate:
+      maxSurge: 1
+      maxUnavailable: 1
+  selector:
+    matchLabels: 
+      name: database-pod
+  template:
+    metadata:
+      name: database-pod
+      labels:
+        name: database-pod
+    spec:
+      containers:
+      - name: database-container
+        image: stackupiss/northwind-db:v1
+        imagePullPolicy: Always
+        ports:
+        - name: nothttp
+          containerPort: 3306
+
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: mydb-svc
+  namespace: myns
+  labels:
+    name: database-service
+spec:
+  type: ClusterIP
+  selector:
+    name: database-pod
+  ports:
+  - name: nothttp
+    port: 3306
+    targetPort: nothttp
