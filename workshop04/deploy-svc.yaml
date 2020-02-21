@@ -1,0 +1,36 @@
+kind: Service
+apiVersion: v1
+metadata:
+  name: fortuneapp-svc
+spec:
+  selector:
+    name: fortuneapp
+  type: ClusterIP
+  ports:
+  - port: 80
+    targetPort: 3000
+
+---
+kind: Deployment
+apiVersion: apps/v1
+metadata:
+  name: fortuneapp-deployment
+spec:
+  selector:
+    matchLabels:
+      name: fortuneapp
+  template:
+    metadata:
+      name: fortuneapp
+      labels:
+        name: fortuneapp
+    spec:
+      containers:
+      - name: fortuneapp
+        image: stackupiss/fortune:v1
+        ports:
+        - containerPort: 3000
+
+
+
+
