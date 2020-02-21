@@ -1,0 +1,126 @@
+---
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: weather-configmap
+  labels:
+    name: weather-configmap
+data:
+  APP_DEFAULT_CITY: singapore
+
+---
+apiVersion: v1
+kind: Secret
+metadata:
+  name: weather-secret
+data:
+  APP_ID: MDBiYWQwMmIxMTIwMjZlZmQ2ZmZlNjZjN2FlMzhkZDk= 
+
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: weather-deployment
+  labels:
+    name: weather-deployment
+spec:
+  selector:
+    matchLabels:
+      name: weather-pod
+  template:
+    metadata:
+      labels:
+        name: weather-pod
+    spec:
+      containers:
+        - name: weather-container
+          image: stackupiss/weather:v1
+          imagePullPolicy: IfNotPresent
+          ports:
+            - name: weather-port
+              containerPort: 3000
+          envFrom:
+            - configMapRef:
+                name: weather-configmap
+            - secretRef:
+                name: weather-secret
+          resources:
+            requests:
+              cpu: 100m
+              memory: 16Mi
+
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: weather-service
+  labels:
+    name: weather-service
+spec:
+  type: ClusterIP
+  selector:
+    name: weather-pod
+  ports:
+    - port: 80
+      targetPort: weather-port
+
+---
+apiVersion: networking.istio.io/v1alpha3
+kind: Gateway
+metadata:
+  name: weather-gateway
+spec:
+  selector:
+    istio: ingressgateway
+  servers:
+    - name: weather-server
+      port:
+        name: http-port
+        protocol: HTTP
+        number: 80
+      hosts:
+        - weatherapp.157.230.193.70.nip.io
+
+---
+apiVersion: networking.istio.io/v1alpha3
+kind: VirtualService
+metadata:
+  name: weather-vs
+spec:
+  hosts:
+    - "*"
+  gateways:
+    - weather-gateway
+  http:
+    - match:
+        - uri:
+            exact: /
+      route:
+        - destination:
+            host: weather-service.default.svc.cluster.local
+      rewrite:
+        uri: /
+    - match:
+        - uri:
+            prefix: /weather
+      route:
+        - destination:
+            host: weather-service.default.svc.cluster.local
+
+---
+apiVersion: networking.istio.io/v1alpha3
+kind: ServiceEntry
+metadata:
+  name: weather-egress
+spec:
+  hosts:
+    - api.openweathermap.org
+  ports:
+    - number: 80
+      protocol: HTTP
+      name: http
+    - number: 443
+      protocol: HTTPS
+      name: https
+  location: MESH_EXTERNAL
+  resolution: DNS

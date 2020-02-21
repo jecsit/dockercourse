@@ -1,0 +1,19 @@
+# Downloading istio
+curl -L https://istio.io/downloadIstio | sh -
+cd istio-1.4.5/ && export PATH=$PWD/bin:$PATH
+
+# Applying istio into kubecluster
+istioctl manifest apply --set profile=demo
+
+# Get custom resource destination
+kubectl get crds
+
+###########################################################################
+
+
+istioctl kube-inject -f weather-application.yml -o weather-application-ingested.yml
+kubectl apply -f deploy-svc-injected.yaml
+kubectl apply -f <($istioctl kube-inject -f deploy-svc.yaml)
+
+kubectl apply -f weather-application-ingested.yml
+
